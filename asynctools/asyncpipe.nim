@@ -157,7 +157,7 @@ else:
       result = "AsyncPipe [read = " & $(cast[uint](pipe.readPipe)) &
                ", write = " & $(cast[int](pipe.writePipe)) & "]"
 
-    proc createPipe*(register = true): AsyncPipe =
+    proc createPipe*(register = true, nonBlockingWrite = true): AsyncPipe =
 
       var number = 0'i64
       var pipeName: string
@@ -335,12 +335,13 @@ else:
       result = "AsyncPipe [read = " & $(cast[uint](pipe.readPipe)) &
                 ", write = " & $(cast[uint](pipe.writePipe)) & "]"
 
-    proc createPipe*(size = 65536, register = true): AsyncPipe =
+    proc createPipe*(size = 65536, register = true, nonBlockingWrite = true): AsyncPipe =
       var fds: array[2, cint]
       if posix.pipe(fds) == -1:
         raiseOSError(osLastError())
       setNonBlocking(fds[0])
-      setNonBlocking(fds[1])
+      if nonBlockingWrite:
+        setNonBlocking(fds[1])
 
       result = AsyncPipe(readPipe: fds[0], writePipe: fds[1])
 
@@ -535,4 +536,3 @@ when isMainModule:
     let res = waitFor(receiver(o))
     doAssert(res.count == testsCount)
     doAssert(res.sum == testsCount * (1 + testsCount) div 2)
-
